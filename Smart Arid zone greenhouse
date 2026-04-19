@@ -1,0 +1,183 @@
+#define BLYNK_TEMPLATE_ID "YourTemplateID"
+#define BLYNK_DEVICE_NAME "SmartGreenhouse"
+#define BLYNK_AUTH_TOKEN "YourAuthToken"
+
+#include <WiFi.h>
+#include <BlynkSimpleEsp32.h>
+#include <DHT.h>
+
+// WiFi
+char ssid[] = "school";
+char pass[] = "pass@1234";
+
+// Sensor pins
+#define DHTPIN 4
+#define DHTTYPE DHT22
+#define SOIL_PIN 34
+#define LIGHT_PIN 35
+
+// Actuator pins
+#define FAN_PIN 26
+#define PUMP_PIN 27
+#define LED_PIN 25
+
+// Button pin
+#define BUTTON_PIN 14
+
+// Sensor
+DHT dht(DHTPIN, DHTTYPE);
+
+// Timer
+BlynkTimer timer;
+
+// Plant mode
+int plantMode = 0;
+
+// Environmental limits
+float tempMin;
+float tempMax;
+
+int soilMin;
+int soilMax;
+
+int lightMin;
+int lightMax;
+
+// Plant name
+String plantName;
+
+// Plant database
+void setPlantProfile()
+{
+
+if (plantMode == 0)
+{
+plantName = "Rosemary";
+
+tempMin = 18;
+tempMax = 25;
+
+soilMin = 30%;
+soilMax = 50%;
+
+lightMin = 12000;
+lightMax = 20000;
+}
+
+if (plantMode == 1)
+{
+plantName = "Cactus";
+
+tempMin = 20;
+tempMax = 35;
+
+soilMin = 10%;
+soilMax = 30%;
+
+lightMin = 8000;
+lightMax = 15000;
+}
+
+if (plantMode == 2)
+{
+plantName = "Lavender";
+
+tempMin = 25;
+tempMax = 35;
+
+soilMin = 30%;
+soilMax = 50%;
+
+lightMin = 10000;
+lightMax = 15000;
+}
+
+// send plant name to Blynk
+Blynk.virtualWrite(V4, plantName);
+}
+
+// change plant from Blynk
+BLYNK_WRITE(V3)
+{
+plantMode = param.asInt();
+setPlantProfile();
+}
+
+// sensor reading and control
+void sendSensorData()
+{
+
+float temperature = dht.readTemperature();
+int soil = analogRead(SOIL_PIN);
+int light = analogRead(LIGHT_PIN);
+
+// send to Blynk
+Blynk.virtualWrite(V0, temperature);
+Blynk.virtualWrite(V1, soil);
+Blynk.virtualWrite(V2, light);
+
+// temperature control
+if (temperature > tempMax)
+digitalWrite(FAN_PIN, HIGH);
+else if (temperature < tempMin)
+digitalWrite(FAN_PIN, LOW);
+
+// soil moisture control
+if (soil < soilMin)
+digitalWrite(PUMP_PIN, HIGH);
+else if (soil > soilMax)
+digitalWrite(PUMP_PIN, LOW);
+
+// light control
+if (light < lightMin)
+digitalWrite(LED_PIN, HIGH);
+else if (light > lightMax)
+digitalWrite(LED_PIN, LOW);
+
+}
+
+// button switching
+void checkButton()
+{
+if (digitalRead(BUTTON_PIN) == LOW)
+{
+
+plantMode++;
+
+if (plantMode > 2)
+plantMode = 0;
+
+setPlantProfile();
+
+delay(500);
+}
+}
+
+void setup()
+{
+
+Serial.begin(115200);
+
+pinMode(FAN_PIN, OUTPUT);
+pinMode(PUMP_PIN, OUTPUT);
+pinMode(LED_PIN, OUTPUT);
+
+pinMode(BUTTON_PIN, INPUT_PULLUP);
+
+dht.begin();
+
+Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
+
+setPlantProfile();
+
+timer.setInterval(30000L, sendSensorData);
+}
+
+void loop()
+{
+
+Blynk.run();
+timer.run();
+
+checkButton();
+}
