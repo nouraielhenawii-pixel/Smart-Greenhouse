@@ -1,183 +1,151 @@
 #define BLYNK_TEMPLATE_ID "TMPL53PHQAnQI"
 #define BLYNK_TEMPLATE_NAME "Smart Greenhouse"
-#define BLYNK_AUTH_TOKEN "xxxxxx"
+#define BLYNK_AUTH_TOKEN "xxxxxxxx"
 
 #include <WiFi.h>
 #include <BlynkSimpleEsp32.h>
 #include <DHT.h>
 
-// WiFi
-char ssid[] = "school";
-char pass[] = "pass@1234";
+// ---------------- WIFI ----------------
+char ssid[] = "OPPO A78";
+char pass[] = "99999999";
 
-// Sensor pins
+// ---------------- PINS ----------------
 #define DHTPIN 4
 #define DHTTYPE DHT22
 #define SOIL_PIN 34
 #define LIGHT_PIN 35
 
-// Actuator pins
 #define FAN_PIN 26
 #define PUMP_PIN 27
 #define LED_PIN 25
-
-// Button pin
 #define BUTTON_PIN 14
 
-// Sensor
+// ---------------- OBJECTS ----------------
 DHT dht(DHTPIN, DHTTYPE);
-
-// Timer
 BlynkTimer timer;
 
-// Plant mode
+// ---------------- PLANT SYSTEM ----------------
 int plantMode = 0;
-
-// Environmental limits
-float tempMin;
-float tempMax;
-
-int soilMin;
-int soilMax;
-
-int lightMin;
-int lightMax;
-
-// Plant name
 String plantName;
 
-// Plant database
+float tempMin, tempMax;
+int soilMin, soilMax;
+int lightMin, lightMax;
+
+// ---------------- PLANT PROFILES ----------------
 void setPlantProfile()
 {
+  if (plantMode == 0)
+  {
+    plantName = "Rosemary";
+    tempMin = 18; tempMax = 25;
+    soilMin = 30; soilMax = 50;
+    lightMin = 12000; lightMax = 20000;
+  }
+  else if (plantMode == 1)
+  {
+    plantName = "Cactus";
+    tempMin = 20; tempMax = 35;
+    soilMin = 10; soilMax = 30;
+    lightMin = 8000; lightMax = 15000;
+  }
+  else
+  {
+    plantName = "Lavender";
+    tempMin = 25; tempMax = 35;
+    soilMin = 30; soilMax = 50;
+    lightMin = 10000; lightMax = 15000;
+  }
 
-if (plantMode == 0)
-{
-plantName = "Rosemary";
-
-tempMin = 18;
-tempMax = 25;
-
-soilMin = 30%;
-soilMax = 50%;
-
-lightMin = 12000;
-lightMax = 20000;
+  Blynk.virtualWrite(V4, plantName);
 }
 
-if (plantMode == 1)
-{
-plantName = "Cactus";
-
-tempMin = 20;
-tempMax = 35;
-
-soilMin = 10%;
-soilMax = 30%;
-
-lightMin = 8000;
-lightMax = 15000;
-}
-
-if (plantMode == 2)
-{
-plantName = "Lavender";
-
-tempMin = 25;
-tempMax = 35;
-
-soilMin = 30%;
-soilMax = 50%;
-
-lightMin = 10000;
-lightMax = 15000;
-}
-
-// send plant name to Blynk
-Blynk.virtualWrite(V4, plantName);
-}
-
-// change plant from Blynk
+// ---------------- BLYNK SWITCH ----------------
 BLYNK_WRITE(V3)
 {
-plantMode = param.asInt();
-setPlantProfile();
+  plantMode = param.asInt();
+  setPlantProfile();
 }
 
-// sensor reading and control
+// ---------------- SENSOR FUNCTION ----------------
 void sendSensorData()
 {
+  Serial.println("Reading sensors...");
 
-float temperature = dht.readTemperature();
-int soil = analogRead(SOIL_PIN);
-int light = analogRead(LIGHT_PIN);
+  float temperature = dht.readTemperature();
+  int soil = analogRead(SOIL_PIN);
+  int light = analogRead(LIGHT_PIN);
 
-// send to Blynk
-Blynk.virtualWrite(V0, temperature);
-Blynk.virtualWrite(V1, soil);
-Blynk.virtualWrite(V2, light);
+  Serial.print("Temp: "); Serial.print(temperature);
+  Serial.print(" | Soil: "); Serial.print(soil);
+  Serial.print(" | Light: "); Serial.println(light);
 
-// temperature control
-if (temperature > tempMax)
-digitalWrite(FAN_PIN, HIGH);
-else if (temperature < tempMin)
-digitalWrite(FAN_PIN, LOW);
+  Blynk.virtualWrite(V0, temperature);
+  Blynk.virtualWrite(V1, soil);
+  Blynk.virtualWrite(V2, light);
 
-// soil moisture control
-if (soil < soilMin)
-digitalWrite(PUMP_PIN, HIGH);
-else if (soil > soilMax)
-digitalWrite(PUMP_PIN, LOW);
-
-// light control
-if (light < lightMin)
-digitalWrite(LED_PIN, HIGH);
-else if (light > lightMax)
-digitalWrite(LED_PIN, LOW);
-
+  digitalWrite(FAN_PIN, (temperature > tempMax) ? HIGH : LOW);
+  digitalWrite(PUMP_PIN, (soil < soilMin) ? HIGH : LOW);
+  digitalWrite(LED_PIN, (light < lightMin) ? HIGH : LOW);
 }
 
-// button switching
+// ---------------- BUTTON ----------------
 void checkButton()
 {
-if (digitalRead(BUTTON_PIN) == LOW)
-{
-
-plantMode++;
-
-if (plantMode > 2)
-plantMode = 0;
-
-setPlantProfile();
-
-delay(500);
-}
+  if (digitalRead(BUTTON_PIN) == LOW)
+  {
+    plantMode = (plantMode + 1) % 3;
+    setPlantProfile();
+    delay(300);
+  }
 }
 
+// ---------------- SETUP (FIXED STABLE) ----------------
 void setup()
 {
+  Serial.begin(115200);
+  delay(2000);
 
-Serial.begin(115200);
+  Serial.println("START");
 
-pinMode(FAN_PIN, OUTPUT);
-pinMode(PUMP_PIN, OUTPUT);
-pinMode(LED_PIN, OUTPUT);
+  pinMode(FAN_PIN, OUTPUT);
+  pinMode(PUMP_PIN, OUTPUT);
+  pinMode(LED_PIN, OUTPUT);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
 
-pinMode(BUTTON_PIN, INPUT_PULLUP);
+  dht.begin();
 
-dht.begin();
+  WiFi.begin(ssid, pass);
 
-Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
+  Serial.print("WiFi connecting");
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(500);
+    Serial.print(".");
+  }
 
-setPlantProfile();
+  Serial.println("\nWiFi OK");
 
-timer.setInterval(30000L, sendSensorData);
+  Blynk.config(BLYNK_AUTH_TOKEN);
+
+  setPlantProfile();
+
+  timer.setInterval(30000L, sendSensorData);
+
+  Serial.println("Setup done");
 }
 
+// ---------------- LOOP (FIXED RECONNECT) ----------------
 void loop()
 {
+  if (!Blynk.connected())
+  {
+    Serial.println("Reconnecting Blynk...");
+    Blynk.connect();
+  }
 
-Blynk.run();
-timer.run();
-
-checkButton();
+  Blynk.run();
+  timer.run();
+  checkButton();
 }
