@@ -1,6 +1,6 @@
 #define BLYNK_TEMPLATE_ID "TMPL53PHQAnQI"
 #define BLYNK_TEMPLATE_NAME "Smart Greenhouse"
-#define BLYNK_AUTH_TOKEN "xxxxxxxx"
+#define BLYNK_AUTH_TOKEN "xxxxxxxxx"
 
 #include <WiFi.h>
 #include <BlynkSimpleEsp32.h>
@@ -8,7 +8,7 @@
 
 // ---------------- WIFI ----------------
 char ssid[] = "OPPO A78";
-char pass[] = "99999999";
+char pass[] = "xxxxxxx";
 
 // ---------------- PINS ----------------
 #define DHTPIN 4
@@ -33,6 +33,20 @@ float tempMin, tempMax;
 int soilMin, soilMax;
 int lightMin, lightMax;
 
+// ---------------- SOIL FIX (ONLY ADDITION) ----------------
+int readSoil()
+{
+  int sum = 0;
+
+  for (int i = 0; i < 10; i++)
+  {
+    sum += analogRead(SOIL_PIN);
+    delay(10);
+  }
+
+  return sum / 10;
+}
+
 // ---------------- PLANT PROFILES ----------------
 void setPlantProfile()
 {
@@ -40,22 +54,22 @@ void setPlantProfile()
   {
     plantName = "Rosemary";
     tempMin = 18; tempMax = 25;
-    soilMin = 30; soilMax = 50;
-    lightMin = 12000; lightMax = 20000;
+    soilMin = 110; soilMax = 160;
+    lightMin = 2000; lightMax =  3200;
   }
   else if (plantMode == 1)
   {
     plantName = "Cactus";
     tempMin = 20; tempMax = 35;
-    soilMin = 10; soilMax = 30;
-    lightMin = 8000; lightMax = 15000;
+    soilMin = 110; soilMax = 140;
+    lightMin = 17000; lightMax = 3000;
   }
   else
   {
     plantName = "Lavender";
     tempMin = 25; tempMax = 35;
-    soilMin = 30; soilMax = 50;
-    lightMin = 10000; lightMax = 15000;
+    soilMin = 120; soilMax = 170;
+    lightMin = 2000; lightMax = 3200;
   }
 
   Blynk.virtualWrite(V4, plantName);
@@ -74,7 +88,10 @@ void sendSensorData()
   Serial.println("Reading sensors...");
 
   float temperature = dht.readTemperature();
-  int soil = analogRead(SOIL_PIN);
+
+  // FIXED SOIL READING ONLY
+  int soil = readSoil();
+
   int light = analogRead(LIGHT_PIN);
 
   Serial.print("Temp: "); Serial.print(temperature);
@@ -101,7 +118,7 @@ void checkButton()
   }
 }
 
-// ---------------- SETUP (FIXED STABLE) ----------------
+// ---------------- SETUP ----------------
 void setup()
 {
   Serial.begin(115200);
@@ -136,7 +153,7 @@ void setup()
   Serial.println("Setup done");
 }
 
-// ---------------- LOOP (FIXED RECONNECT) ----------------
+// ---------------- LOOP ----------------
 void loop()
 {
   if (!Blynk.connected())
