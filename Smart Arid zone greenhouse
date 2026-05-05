@@ -1,6 +1,6 @@
 #define BLYNK_TEMPLATE_ID "TMPL53PHQAnQI"
 #define BLYNK_TEMPLATE_NAME "Smart Greenhouse"
-#define BLYNK_AUTH_TOKEN "ePUHbuwxz6p_nxlf3Y3iyqYwPYXNzFh5"
+#define BLYNK_AUTH_TOKEN "xxxxxxxx"
 
 #include <WiFi.h>
 #include <BlynkSimpleEsp32.h>
