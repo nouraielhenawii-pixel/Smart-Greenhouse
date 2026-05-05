@@ -6,11 +6,11 @@
 #include <BlynkSimpleEsp32.h>
 #include <DHT.h>
 
-// ---------------- WIFI ----------------
+
 char ssid[] = "OPPO A78";
 char pass[] = "99999999";
 
-// ---------------- PINS ----------------
+
 #define DHTPIN 4
 #define DHTTYPE DHT22
 #define SOIL_PIN 34
@@ -21,11 +21,11 @@ char pass[] = "99999999";
 #define LED_PIN 25
 #define BUTTON_PIN 14
 
-// ---------------- OBJECTS ----------------
+
 DHT dht(DHTPIN, DHTTYPE);
 BlynkTimer timer;
 
-// ---------------- PLANT SYSTEM ----------------
+
 int plantMode = 0;
 String plantName;
 
@@ -33,7 +33,7 @@ float tempMin, tempMax;
 int soilMin, soilMax;
 int lightMin, lightMax;
 
-// ---------------- PLANT PROFILES ----------------
+
 void setPlantProfile()
 {
   if (plantMode == 0)
@@ -61,14 +61,14 @@ void setPlantProfile()
   Blynk.virtualWrite(V4, plantName);
 }
 
-// ---------------- BLYNK SWITCH ----------------
+
 BLYNK_WRITE(V3)
 {
   plantMode = param.asInt();
   setPlantProfile();
 }
 
-// ---------------- SENSOR FUNCTION ----------------
+
 void sendSensorData()
 {
   Serial.println("Reading sensors...");
@@ -90,7 +90,7 @@ void sendSensorData()
   digitalWrite(LED_PIN, (light < lightMin) ? HIGH : LOW);
 }
 
-// ---------------- BUTTON ----------------
+
 void checkButton()
 {
   if (digitalRead(BUTTON_PIN) == LOW)
@@ -101,7 +101,7 @@ void checkButton()
   }
 }
 
-// ---------------- SETUP (FIXED STABLE) ----------------
+
 void setup()
 {
   Serial.begin(115200);
@@ -136,7 +136,7 @@ void setup()
   Serial.println("Setup done");
 }
 
-// ---------------- LOOP (FIXED RECONNECT) ----------------
+
 void loop()
 {
   if (!Blynk.connected())
